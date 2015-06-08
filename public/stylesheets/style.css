@@ -1,8 +1,58 @@
 body {
   padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  background-color: #BDAE72;
 }
 
 a {
   color: #00B7FF;
 }
+
+h2 {
+	margin: 10px;
+}
+
+form {
+	border: 1px solid black;
+	padding: 1%;
+	margin-top: 20px;
+	margin-bottom: 20px;
+	margin-left:30%;
+	margin-right:30%;
+	width: 40%;
+	text-align: left;
+}
+
+.button {
+
+}
+
+.username {
+	width: 100%;
+	border: 1px dotted black;
+	margin-right: 70%;
+	background-color: #DBC49D;
+}
+
+.postbody {
+	text-align: center;
+	margin-left: 30%;
+	margin-right: 30%;
+}
+
+.postdate {
+	/*margin-left: 70%;*/
+	text-align: right;
+}
+
+.image {
+	text-align: center;
+	margin-left: auto;
+    margin-right: auto;
+
+}
+
+.poststitle {
+	text-align: center;
+}
+

@@ -1,35 +1,24 @@
 extends layout
 
-block content
-  h1= title
+block append content
   if error
     h3= error
   if username
     p You are currently logged in as #{ username }
-  else
-    p You are not logged in. Would you like to be?
+      form(method="post" action="/logout")
+        input(type="submit" value="logout")
+  div
+  form(method="post" action="/addpost")
+    h2 Tell me your mind!
     div
-      form(method="post" action="/register")
-        h2 Register a new account
-        div
-          label Username:
-            input(type="text" name="username" placeholder="username")
-        div
-          label Password:
-            input(type="password" name="password")
-        div
-          label Confirm Password:
-            input(type="password" name="password_confirm")
-        div
-          input(type="submit" value="Pleased to meet you!")
-    div
-      form(method="post" action="/login")
-        h2 Log into an existing account
-        div
-          label Username:
-            input(type="text" name="username" placeholder="username")
-        div
-          label Password:
-            input(type="password" name="password")
-        div
-          input(type="submit" value="Let me in!")
+      label Lay it on me -->
+        input(type="text" name="postText" placeholder="  fishy fishy fishy fish ")
+        input(type="submit" value="Learnin the piano")
+
+
+  div.posttitle Current Posts
+  each post in posts
+   p.username= post.username
+     span.postbody= post.body
+     span.postdate= post.posted_at
+   
