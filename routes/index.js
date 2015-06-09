@@ -51,12 +51,13 @@ router.post('/register', function(request, response) {
   var username = request.body.username,
       password = request.body.password,
       password_confirm = request.body.password_confirm,
+      email = request.body.email,
       database = app.get('database');  
 
   if (password === password_confirm) {
 	//stash username, password and nonce to be able to add to db later after verification
 	var newNonce = uuid.v4();
-	usersToAdd.push({nonce : newNonce, username : username, password : password})
+	usersToAdd.push({nonce : newNonce, username : username, password : password, email : email})
 	console.log(usersToAdd);
 
 	//send verification email
@@ -74,7 +75,7 @@ router.post('/register', function(request, response) {
 	// setup e-mail data with unicode symbols 
 	var mailOptions = {
 	    from: 'Me ✔ <morganleonardjunk@gmail.com>', // sender address 
-	    to: 'morganleonardjunk@gmail.com', // list of receivers 
+	    to: email,  // list of receivers 
 	    subject: 'Verification Test ✔', // Subject line 
 	    //text: 'http://localhost:3000/verify_email/' + newNonce, // plaintext body 
 	    html: '<a href=' + verificationUrl +'>Click this link to verify email</a>' // html body 
@@ -117,7 +118,8 @@ router.get('/verify_email/:nonce', function(request, response) {
 		if(user.nonce === returnedNonce) {
 			database('users').insert({
 				username : user.username,
-				password : user.password
+				password : user.password,
+        email    : user.email
 			}).then(function () {
 				response.cookie('username', user.username)
 				response.redirect('/');
