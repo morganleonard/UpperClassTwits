@@ -2,16 +2,50 @@ var express = require('express');
 var router = express.Router();
 var app = require('../app')
 var moment = require('moment');
+var redis = require('redis');
+var cache = redis.createClient();
+
 
 
 
 router.get('/', function(request, response, next) {
   var username = null;
+
   
+  // set username cookie if it exists
   if (request.cookies.username != undefined) {
-    //set cookie
     username = request.cookies.username;
 
+
+// /********************************************REDIS CACHING **************************************************/
+
+//   //check cache
+//   database = app.get('database');
+//   cache.lrange('posts', 0, -1, function(err, cachedPosts) {
+//   console.log(cachedPosts)
+  
+//     //not in cache, fetch and store
+//     if (cachedPosts.length < 1) {
+  
+//       //fetch posts from db
+//       database('posts').select().then(function(retrievedPosts) {
+//         //set the cache
+//         //console.log(retrievedPosts)
+//         cache.lpush('posts', retrievedPosts);
+//         // response to browser
+//         response.render('index', { title: 'Upper Class Twits', username: username, posts: retrievedPosts})
+//       })
+//     //  
+//     } else {
+
+//       response.render('index', { title: 'Upper Class Twits', username: username, posts: cachedPosts[0]})
+//       //console.log(cachedPosts[0][1])
+//     }
+//   })
+
+// /*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
+/********************************************OLD DB  Query **************************************************/
     //get posts from database and render page with retrieved posts object
     database = app.get('database');
     database('posts').select().then(function(retrievedPosts) {
@@ -30,8 +64,10 @@ router.get('/', function(request, response, next) {
       })
       response.render('index', { title: 'Upper Class Twits', username: username, posts: retrievedPosts});
     })
-   
+/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
+
+  // no username cookie, redirect to login page
   } else {
     username = null;
     response.render('login', { title: 'Upper Class Twits', username: username });
@@ -54,6 +90,14 @@ router.post('/register', function(request, response) {
 /*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/    
 
   if (password === password_confirm) {
+
+/****************************************** send verification email ********************************/
+
+/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
+
+/********************************* move add user to verification email handler ********************************/
+
     database('users').insert({
       username: username,
       password: password,
@@ -61,6 +105,8 @@ router.post('/register', function(request, response) {
       response.cookie('username', username)
       response.redirect('/');
     });
+
+/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
   } else {
     
     response.render('login', {
@@ -119,6 +165,8 @@ router.post('/addpost', function(request, response) {
     body      : postText,
     posted_at : postTime
   }).then(function() {
+      // clear cache because it is outdated
+
       response.redirect('/');
     });
   }) 
