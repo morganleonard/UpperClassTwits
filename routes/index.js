@@ -47,13 +47,22 @@ router.post('/register', function(request, response) {
       database = app.get('database');
 
 
-/****************check if username already exists **************/
+///****************check if username already exists **************/
 
-  //insert code to check if username exists, if it does, redirect to 'login' with error
+//   //insert code to check if username exists, if it does, redirect to 'login' with error
 
-/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/    
+///*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/    
 
   if (password === password_confirm) {
+
+/****************************************** send verification email ********************************/
+// user nodemailer and node-uuid
+/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+    
+
+
+/********************************* move add user to verification email handler ********************************/
+
     database('users').insert({
       username: username,
       password: password,
@@ -61,6 +70,8 @@ router.post('/register', function(request, response) {
       response.cookie('username', username)
       response.redirect('/');
     });
+
+/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
   } else {
     
     response.render('login', {
@@ -69,6 +80,24 @@ router.post('/register', function(request, response) {
       error: "Password didn't match confirmation"
     });
   }
+});
+
+
+//GET handler for email verification
+router.get('/verify_email/:nonce', function(request, response) {
+    redisClient.get(request.params.nonce, function(userId) {
+        redisClient.del(request.params.nonce, function() {
+            if (userId) {
+                new User({id: userId}).fetch(function(user) {
+                    user.set('verifiedAt', new Date().toISOString());
+                    // now log the user in, etc.
+                })
+            } else {
+                response.render('index',
+                    {error: "That verification code is invalid!"});
+            }
+        });
+    });
 });
 
 //POST handler for logging in existing users
