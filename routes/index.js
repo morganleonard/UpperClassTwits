@@ -3,6 +3,8 @@ var router = express.Router();
 var app = require('../app')
 var moment = require('moment');
 var uuid = require('node-uuid');
+var nodemailer = require('nodemailer');
+var configs = require('../config');
 
 
 // array for stashing user info for users to add to db after verification
@@ -57,10 +59,35 @@ router.post('/register', function(request, response) {
 	usersToAdd.push({nonce : newNonce, username : username, password : password})
 	console.log(usersToAdd);
 
-	/****************************************** send verification email ********************************/
-	// use nonce from usersToAdd and send to user
-	// user nodemailer
-	/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+	//send verification email
+	// create reusable transporter object using SMTP transport 
+	var transporter = nodemailer.createTransport({
+		service: 'Gmail',
+		auth: {
+			user: configs.emailUser,
+			pass: configs.emailPassword
+		}
+	})
+
+	var verificationUrl = 'http://localhost:3000/verify_email/' + newNonce;
+
+	// setup e-mail data with unicode symbols 
+	var mailOptions = {
+	    from: 'Me ✔ <morganleonardjunk@gmail.com>', // sender address 
+	    to: 'morganleonardjunk@gmail.com', // list of receivers 
+	    subject: 'Verification Test ✔', // Subject line 
+	    //text: 'http://localhost:3000/verify_email/' + newNonce, // plaintext body 
+	    html: '<a href=' + verificationUrl +'>Click this link to verify email</a>' // html body 
+	};
+	 
+	// send mail with defined transport object 
+	transporter.sendMail(mailOptions, function(error, info){
+	    if(error){
+	        console.log(error);
+	    }else{
+	        console.log('Message sent: ' + info.response);
+	    }
+	});
 
 	//redirect to login page with error for verifying email
 	response.render('login', {
@@ -68,17 +95,6 @@ router.post('/register', function(request, response) {
       user: null,
       error: "Please click the link in your email"
     });
-
-
-	// /********************************* move add user to verification email handler ********************************/
-	//     database('users').insert({
-	//       username: username,
-	//       password: password,
-	//     }).then(function() {
-	//       response.cookie('username', username)
-	//       response.redirect('/');
-	//     });
-	// /*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
   } else {
     response.render('login', {
@@ -108,22 +124,8 @@ router.get('/verify_email/:nonce', function(request, response) {
 			})
 		}
 	})
-
-
-    // redisClient.get(request.params.nonce, function(userId) {
-    //     redisClient.del(request.params.nonce, function() {
-    //         if (userId) {
-    //             new User({id: userId}).fetch(function(user) {
-    //                 user.set('verifiedAt', new Date().toISOString());
-    //                 // now log the user in, etc.
-    //             })
-    //         } else {
-    //             response.render('index',
-    //                 {error: "That verification code is invalid!"});
-    //         }
-    //     });
-    // });
 });
+
 
 //POST handler for logging in existing users
 router.post('/login', function(request, response) {
