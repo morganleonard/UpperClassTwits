@@ -16,7 +16,8 @@
     "pg": "^4.3.0",
     "serve-favicon": "~2.2.0",
     "moment": "~2.10.3",
-    "redis": "~0.12.1"
+    "redis": "~0.12.1",
+    "node-uuid": "~1.4.3"
   },
   "description": "A site you can log into and out of",
   "main": "app.js",

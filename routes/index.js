@@ -2,9 +2,14 @@ var express = require('express');
 var router = express.Router();
 var app = require('../app')
 var moment = require('moment');
+var uuid = require('node-uuid');
 
 
+// array for stashing user info for users to add to db after verification
+var usersToAdd = [];
 
+
+//GET Router to handle home page where all posts are displayed
 router.get('/', function(request, response, next) {
   var username = null;
   
@@ -44,36 +49,38 @@ router.post('/register', function(request, response) {
   var username = request.body.username,
       password = request.body.password,
       password_confirm = request.body.password_confirm,
-      database = app.get('database');
-
-
-///****************check if username already exists **************/
-
-//   //insert code to check if username exists, if it does, redirect to 'login' with error
-
-///*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/    
+      database = app.get('database');  
 
   if (password === password_confirm) {
+	//stash username, password and nonce to be able to add to db later after verification
+	var newNonce = uuid.v4();
+	usersToAdd.push({nonce : newNonce, username : username, password : password})
+	console.log(usersToAdd);
 
-/****************************************** send verification email ********************************/
-// user nodemailer and node-uuid
-/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
-    
+	/****************************************** send verification email ********************************/
+	// use nonce from usersToAdd and send to user
+	// user nodemailer
+	/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
-
-/********************************* move add user to verification email handler ********************************/
-
-    database('users').insert({
-      username: username,
-      password: password,
-    }).then(function() {
-      response.cookie('username', username)
-      response.redirect('/');
+	//redirect to login page with error for verifying email
+	response.render('login', {
+      title: 'Authorize Me!',
+      user: null,
+      error: "Please click the link in your email"
     });
 
-/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
+	// /********************************* move add user to verification email handler ********************************/
+	//     database('users').insert({
+	//       username: username,
+	//       password: password,
+	//     }).then(function() {
+	//       response.cookie('username', username)
+	//       response.redirect('/');
+	//     });
+	// /*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
   } else {
-    
     response.render('login', {
       title: 'Authorize Me!',
       user: null,
@@ -85,19 +92,37 @@ router.post('/register', function(request, response) {
 
 //GET handler for email verification
 router.get('/verify_email/:nonce', function(request, response) {
-    redisClient.get(request.params.nonce, function(userId) {
-        redisClient.del(request.params.nonce, function() {
-            if (userId) {
-                new User({id: userId}).fetch(function(user) {
-                    user.set('verifiedAt', new Date().toISOString());
-                    // now log the user in, etc.
-                })
-            } else {
-                response.render('index',
-                    {error: "That verification code is invalid!"});
-            }
-        });
-    });
+	database = app.get('database');
+	var returnedNonce = request.params.nonce;
+	console.log(returnedNonce);
+
+	// iterate through usersToAdd array and add user to db if nonce match is found
+	usersToAdd.forEach(function (user) {
+		if(user.nonce === returnedNonce) {
+			database('users').insert({
+				username : user.username,
+				password : user.password
+			}).then(function () {
+				response.cookie('username', user.username)
+				response.redirect('/');
+			})
+		}
+	})
+
+
+    // redisClient.get(request.params.nonce, function(userId) {
+    //     redisClient.del(request.params.nonce, function() {
+    //         if (userId) {
+    //             new User({id: userId}).fetch(function(user) {
+    //                 user.set('verifiedAt', new Date().toISOString());
+    //                 // now log the user in, etc.
+    //             })
+    //         } else {
+    //             response.render('index',
+    //                 {error: "That verification code is invalid!"});
+    //         }
+    //     });
+    // });
 });
 
 //POST handler for logging in existing users
