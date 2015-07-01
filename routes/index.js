@@ -5,7 +5,7 @@ var moment = require('moment');
 var uuid = require('node-uuid');
 var nodemailer = require('nodemailer');
 var configs = require('../config');
-
+//var pwd = require('pwd');
 
 // array for stashing user info for users to add to db after verification
 var usersToAdd = [];
@@ -57,8 +57,17 @@ router.post('/register', function(request, response) {
   if (password === password_confirm) {
 	//stash username, password and nonce to be able to add to db later after verification
 	var newNonce = uuid.v4();
-	usersToAdd.push({nonce : newNonce, username : username, password : password, email : email})
-	console.log(usersToAdd);
+  var pass = require('pwd');
+  pass.hash(password, function(err, salt, hash) {
+	 usersToAdd.push({
+    nonce : newNonce, 
+    username : username,
+    passwordhash : hash,
+    email : email, 
+    salt : salt
+  })
+	 console.log(usersToAdd);
+  })
 
 	//send verification email
 	// create reusable transporter object using SMTP transport 
@@ -117,9 +126,10 @@ router.get('/verify_email/:nonce', function(request, response) {
 	usersToAdd.forEach(function (user) {
 		if(user.nonce === returnedNonce) {
 			database('users').insert({
-				username : user.username,
-				password : user.password,
-        email    : user.email
+				username     : user.username,
+				passwordhash : user.passwordhash,
+        email        : user.email,
+        salt         : user.salt
 			}).then(function () {
 				response.cookie('username', user.username)
 				response.redirect('/');
@@ -144,16 +154,21 @@ router.post('/login', function(request, response) {
         });
     } else {
       var user = records[0];
-      if (user.password === password) {
-        response.cookie('username', username);
-        response.redirect('/');
-      } else {
-        response.render('login', {
-          title: 'Authorize Me!',
-          user: null,
-          error: "Password incorrect"
-        });
-      }
+      var pass = require('pwd');
+      pass.hash(password, user.salt, function(err, hash) {
+
+        if(user.passwordhash === hash) {
+       // if (user.password === password) {
+          response.cookie('username', username);
+          response.redirect('/');
+        } else {
+          response.render('login', {
+            title: 'Authorize Me!',
+            user: null,
+            error: "Password incorrect"
+          });
+        }
+      })
     }
   });
 });
